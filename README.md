@@ -18,6 +18,7 @@ use the given data set to answer your questions, but before you start, you readi
 explore, clean, and analyze your dataset.
 
 The provided customer data set includes information about:
+
 ● Customers who left within the last month – the column is called Churn.
 
 ● The services that each customer has signed up for – phone, multiple lines,
