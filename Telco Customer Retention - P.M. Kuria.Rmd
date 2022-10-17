@@ -1,0 +1,387 @@
+---
+title: "MTN Telco Custormer Rention analysis"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+## 1. Defining the Question
+
+### a) Specifying the Data Analysis Question
+
+The management would like to get your assistance in understanding the current subscribed customers.
+Your recommendations informed by your analysis will help them make informed decisions on effective customer retention programs.
+
+### b) Defining the Metric for Success
+
+The solution will have satisfied the research question when you can identify the factors that contribute to customer churn.
+
+### c) Understanding the context
+
+MTN Telecom offers mobile and internet services to its customers.
+These services include phone, multiple lines, internet, online security, online backup, device protection, tech support, and streaming TV and movies.
+
+You have been provided with the current customer data.
+Since you will be working towards a descriptive report than a predictive one, you decide to think critically of the kind of questions that would help you craft customer retention programs.
+You then later use the given data set to answer your questions but before you start, you reading, explore, clean and visualise your dataset.
+
+### d) Recording the Experimental Design
+
+The steps to be taken include: 1.
+Load dataset and preview its summarized information to get a feel of what you will be working with.
+2.
+Carry out data cleaning.
+3.
+Carry out data analysis.
+4.
+Interpret results.
+5.
+Provide recommendations based on results of analysis.
+6.
+Challenge your solution.
+
+### e) Data Relevance
+
+For now, the data we have contains churn data which will be critical for our research specific analysis.
+
+## 2. Data Cleaning & Preparation
+
+```{r}
+#loading libraries
+library(tidyverse)
+
+```
+
+```{r}
+#loading data
+df_mtn <- read_csv("https://bit.ly/2ZlpzjF")
+df_mtn
+
+```
+
+```{r}
+#data dimension
+dim(df_mtn)
+
+```
+
+This data set has 7,050 records and 21 variables.
+
+```{r}
+#remove duplicates
+df_mtn <- distinct(df_mtn)
+dim(df_mtn)
+
+```
+
+7 duplicates values were found in the dataset which were dropped.
+
+```{r}
+#drop missing value
+df_mtn <- na.omit(df_mtn)
+dim(df_mtn)
+```
+
+40 missing values were dropped, which isn't a big loss.
+
+```{r}
+#properly formatting columns to lowercase
+names(df_mtn) <- tolower(names(df_mtn))
+names(df_mtn)
+
+```
+
+```{r}
+#previewing the number of unique values
+sample_n(unique(df_mtn), 7)
+```
+
+```{r}
+#checking the datatypes
+str(df_mtn)
+```
+
+```{r}
+# check unique seniors
+distinct_senior = unique(df_mtn$seniorcitizen)
+distinct_senior
+```
+
+```{r}
+# check unique seniors
+distinct_payment = unique(df_mtn$paymentmethod)
+distinct_payment
+```
+
+We can see that some variables aren't quite right when it comes to their unique values.
+For example: \* 'seniorcitizen' should be a boolean object (Yes/No), not a float binary (0.0/0.1) \* 'paymentmethod' has values with spelling errors such as "Mailed checkkk" and "Electronic chekk", which created duplicates
+
+```{r}
+# resolve unique seniors
+df_mtn$seniorcitizen <- replace(df_mtn$seniorcitizen,df_mtn$seniorcitizen ==0,"No")
+df_mtn$seniorcitizen <- replace(df_mtn$seniorcitizen,df_mtn$seniorcitizen ==1,"Yes")
+unique(df_mtn$seniorcitizen)
+```
+
+```{r}
+# resolve payment methods
+df_mtn$paymentmethod <- replace(df_mtn$paymentmethod,df_mtn$paymentmethod =="Mailed checkkk","Mailed check")
+df_mtn$paymentmethod <- replace(df_mtn$paymentmethod,df_mtn$paymentmethod =="Electronic checkk","Electronic check")
+unique(df_mtn$paymentmethod)
+```
+
+```{r}
+# do a box plot on outliers
+boxplot(select(df_mtn, tenure, monthlycharges, totalcharges))
+```
+
+We can see that there are several outliers in the 'tenure', 'monthly_charges', and 'total_charges' variables.
+We can remove them using the IQR method.
+
+```{r}
+#find Q1, Q3, and interquartile range for values in column tenure
+quartiles <- quantile(df_mtn$tenure, probs=c(.25, .75), na.rm = FALSE)
+IQR <- IQR(df_mtn$tenure)
+
+Lower <- quartiles[1] - 1.5*IQR
+Upper <- quartiles[2] + 1.5*IQR 
+
+#only keep rows in dataframe that have values within 1.5*IQR of Q1 and Q3
+data_no_outlier <- subset(df_mtn, df_mtn$tenure > Lower & df_mtn$tenure < Upper)
+
+#view row and column count of new data frame
+dim(data_no_outlier) 
+
+
+```
+
+## 3. Data Analysis
+
+### Research-specific Analysis
+
+What percentage of customers from our dataset churned?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn) %>% 
+    mutate(percent = n/sum(n))
+```
+
+26.6% Churned
+
+What is the gender role in churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, gender) %>% 
+    mutate(percent = n/sum(n))
+```
+
+Female and male have 13.36% and 13.23% respectively, indicating gender doesn't influence churn
+
+Does senior citizen influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, seniorcitizen) %>% 
+    mutate(percent = n/sum(n))
+```
+
+Senior citizens seems to have a low 6.7% churn compared to non-senior citizens with 19.83%
+
+Does having a partner influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, partner) %>% 
+    mutate(percent = n/sum(n))
+```
+
+Customers with partners have lower churn 9.5% compared to those without 17.07%
+
+Does having a dependents influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, dependents) %>% 
+    mutate(percent = n/sum(n))
+```
+
+Customers with dependents have lower churn 4.6% compared to those without 21.94%
+
+Does having a phone service influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, phoneservice) %>% 
+    mutate(percent = n/sum(n))
+```
+
+Customers with phone service have a high churn 24.17% compared to those without 2.4%
+
+Does having multiple lines influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, multiplelines) %>% 
+    mutate(percent = n/sum(n))
+```
+
+There is no significant difference for the customers who have multiple lines while those customers without no phone service their churn is lower 2.4%.
+
+Does having internet service influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, internetservice) %>% 
+    mutate(percent = n/sum(n))
+```
+
+Fiber optic customers have the highest churn rate of 18.43%
+
+Does having online security influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, onlinesecurity) %>% 
+    mutate(percent = n/sum(n))
+```
+
+Customers without online security have the highest churn rate of 20.8%
+
+Does having online backup influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, onlinebackup) %>% 
+    mutate(percent = n/sum(n))
+```
+
+Customers with online backup have the highest churn rate of 17.5%
+
+Does having device protection influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, deviceprotection) %>% 
+    mutate(percent = n/sum(n))
+```
+
+Customers without device protection have the highest churn rate of 17.22%
+
+Does having tech support influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  count(churn, techsupport) %>% 
+    mutate(percent = n/sum(n))
+```
+
+Customers that don't get tech support have the highest churn rate 20.59%
+
+Does monthly in respect to payment method influence churn?
+
+```{r}
+# group by then perform summary
+
+df_mtn %>%
+  group_by(churn, paymentmethod) %>% 
+    summarise(monthlycharges = sum(monthlycharges)) %>% arrange(desc(monthlycharges))
+```
+
+Electronic check payment method seems to have the highest churn followed by Bank transfer(automatic), Credit card (automatic) and Mailed check.
+
+Does total charges in resepect to payment method influence churn?
+
+```{r}
+# count then perform percentage
+
+df_mtn %>%
+  group_by(churn, paymentmethod) %>% 
+    summarise(totalcharges = sum(totalcharges)) %>% arrange(desc(totalcharges))
+```
+
+Electronic check and Bank transfer (automatic) payment methods even though they have the highest billing charges they top the payment methods that was used by the churned customers.
+
+## 4. Summary of Findings
+
+Based on the results of the analysis, the following conclusions were arrived at:
+
+-    There is no significant difference in churn rate between male and female subscribers.
+    So this is not an area management needs to worry about.
+
+-   Majority of the customers are not senior citizens so this makes this dataset biased and hard to identify whether being a senior citizen affects churn rate.
+
+-   Not having a partner increases the likelihood of churning.
+
+-   Not having dependents increases the likelihood of churning.
+
+-   Having Fiber optic as internet service increases the likelihood of churning.
+
+-   Having phone service increases the likelihood of churning.
+
+-   Having single or multiple line increases the likelihood of churning.
+
+-   Having online backup increases the likelihood of churning.
+
+-   Not having online security increases the likelihood of churning.
+
+-   Having Electronic check and Bank transfer (automatic) as payment methods increases the likelihood of churning.
+
+## 5. Recommendations
+
+In order to create an effective customer retention program, management should take the following measures:
+
+-   Focus more on meeting the needs of non-senior citizens.
+
+-   Focus more on having customers that have partners and/or dependents since these people are less likely to churn.
+    Alternatively, management can come up with services specifically designed for customers without partners and/or dependents.
+    This would require additional research.
+
+-   Focus on providing more online security services to customers.
+    *Encourage customers to user Credit card as payment method. More research is required to understand why Electronic check has the highest churn rate.*
+
+-   Focus on marketing more on internet services to address the significant number of customers with no internet service.
+
+-   Focus on providing device protection services to customers
+
+-   Focus on improving customer service in respect to tech support.
+
+##6.
+Challenging your Solution
+
+### a). Did we have the right data? Do we need other data to answer our question?
+
+s far as I can tell, we had the right data.
+However, more data is still needed, particularly those with more customers who churned so we can have a better understanding of why they might have churned.
+
+### b). Did we have the right question?
+
+Yes, we did.
